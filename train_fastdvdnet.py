@@ -65,7 +65,7 @@ def main(**args):
         D_optimizer = optim.Adam(D.parameters(), lr=args['lr'])
 
         # Resume training or start anew
-        start_epoch, training_params = resume_training(args, G, optimizer)
+        start_epoch, training_params = resume_training(args, G, G_optimizer)
 
         # Training
         start_time = time.time()
@@ -76,8 +76,12 @@ def main(**args):
                     training_params['no_orthog'] = True
 
                 # set learning rate in optimizer
-                for param_group in optimizer.param_groups:
+                for param_group in G_optimizer.param_groups:
                     param_group["lr"] = current_lr
+
+                for param_group in D_optimizer.param_groups:#PGD할때 D는 바뀌기때문에 분리함
+                    param_group["lr"] = current_lr
+
                 print('\nlearning rate %f' % current_lr)
 
                 # train
@@ -88,7 +92,7 @@ def main(**args):
                         G.train()
 
                         # When optimizer = optim.Optimizer(net.parameters()) we only zero the optim's grads
-                        optimizer.zero_grad()
+                        G_optimizer.zero_grad()
 
                         # convert inp to [N, num_frames*C. H, W] in  [0., 1.] from [N, num_frames, C. H, W] in [0., 255.]
                         # extract ground truth (central frame)
@@ -116,7 +120,16 @@ def main(**args):
                         # Compute loss
                         loss = criterion(gt_train, out_train) / (N*2)
                         loss.backward()
-                        optimizer.step()
+                        G_optimizer.step()
+
+                        D.train()
+                        D_optimizer.zero_grad()
+
+                        real_out = D(gt_train)
+                        fake_out = D(out_train)
+                        d_loss = 1 - fake_out + real_out
+                        d_loss.backward(retain_graph=True)
+                        D_optimizer.step()
 
                         # Results
                         if training_params['step'] % args['save_every'] == 0:
@@ -127,6 +140,7 @@ def main(**args):
                                 log_train_psnr(out_train, \
                                         gt_train, \
                                         loss, \
+                                        d_loss, \
                                         writer, \
                                         epoch, \
                                         i, \
@@ -153,7 +167,7 @@ def main(**args):
 
                 # save model and checkpoint
                 training_params['start_epoch'] = epoch + 1
-                save_model_checkpoint(G, args, optimizer, training_params, epoch)
+                save_model_checkpoint(G, args, G_optimizer, training_params, epoch)
 
         # Print elapsed time
         elapsed_time = time.time() - start_time

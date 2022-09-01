@@ -80,14 +80,15 @@ def lr_scheduler(epoch, argdict):
 		current_lr = argdict['lr']
 	return current_lr, reset_orthog
 
-def	log_train_psnr(result, imsource, loss, writer, epoch, idx, num_minibatches, training_params):
+def	log_train_psnr(result, imsource, loss, d_loss, writer, epoch, idx, num_minibatches, training_params):
 	'''Logs trai loss.
 	'''
 	#Compute pnsr of the whole batch
 # 	psnr_train = batch_psnr(torch.clamp(result, 0., 1.), imsource, 1.)
 
 	# Log the scalar values
-	writer.add_scalar('loss', loss.item(), training_params['step'])
+	writer.add_scalar('Gloss', loss.item(), training_params['step'])
+	writer.add_scalar('Dloss', d_loss.item(), training_params['step'])
 # 	writer.add_scalar('PSNR on training data', psnr_train, \
 # 		  training_params['step'])
 	print("[epoch {}][{}/{}] loss: {:1.4f} PSNR_train: {:1.4f}".\

@@ -84,15 +84,15 @@ def	log_train_psnr(result, imsource, loss, d_loss, writer, epoch, idx, num_minib
 	'''Logs trai loss.
 	'''
 	#Compute pnsr of the whole batch
-# 	psnr_train = batch_psnr(torch.clamp(result, 0., 1.), imsource, 1.)
+ 	# psnr_train = batch_psnr(torch.clamp(result, 0., 1.), imsource, 1.)
 
 	# Log the scalar values
 	writer.add_scalar('Gloss', loss.item(), training_params['step'])
 	writer.add_scalar('Dloss', d_loss.item(), training_params['step'])
 # 	writer.add_scalar('PSNR on training data', psnr_train, \
 # 		  training_params['step'])
-	print("[epoch {}][{}/{}] loss: {:1.4f} PSNR_train: {:1.4f}".\
-		  format(epoch+1, idx+1, num_minibatches, loss.item(), 0.0))
+# 	print("[epoch {}][{}/{}] loss: {:1.4f} PSNR_train: {:1.4f}".\
+# 		  format(epoch+1, idx+1, num_minibatches, loss.item(), psnr_train))
 
 def save_model_checkpoint(model, argdict, optimizer, train_pars, epoch):
 	"""Stores the model parameters under 'argdict['log_dir'] + '/net.pth'
@@ -117,6 +117,7 @@ def validate_and_log(model_temp, dataset_val, valnoisestd, temp_psz, writer, \
 	"""
 	t1 = time.time()
 	psnr_val = 0
+	txt = open("valpsnr.txt", 'a')
 	with torch.no_grad():
 		for seq_val in dataset_val:
 			noise = torch.FloatTensor(seq_val.size()).normal_(mean=0, std=valnoisestd)
@@ -131,6 +132,7 @@ def validate_and_log(model_temp, dataset_val, valnoisestd, temp_psz, writer, \
 		psnr_val /= len(dataset_val)
 		t2 = time.time()
 		print("\n[epoch %d] PSNR_val: %.4f, on %.2f sec" % (epoch+1, psnr_val, (t2-t1)))
+		txt.write("\n[epoch %d] PSNR_val: %.4f, on %.2f sec" % (epoch+1, psnr_val, (t2-t1)))
 		writer.add_scalar('PSNR on validation data', psnr_val, epoch)
 		writer.add_scalar('Learning rate', lr, epoch)
 
